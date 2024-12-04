@@ -24,7 +24,7 @@ export class EventsGateway implements OnModuleInit {
       socket.on('joined-room', this.joinedRoom.bind(this, socket));
 
       socket.on('disconnect', () => {
-        console.log('User  disconnected');
+        this.handleDisconnect(socket);
       });
     });
   }
@@ -40,7 +40,12 @@ export class EventsGateway implements OnModuleInit {
   private joinedRoom(socket: Socket, { roomId, peerId }: IRoomParams) {
     console.log('joined room called', this.rooms, roomId, peerId);
     if (this.rooms[roomId]) {
-      console.log('New user has joined room', roomId, 'with peer id as', peerId);
+      console.log(
+        'New user has joined room',
+        roomId,
+        'with peer id as',
+        peerId,
+      );
       this.rooms[roomId].push(peerId);
       console.log('added peer to room', this.rooms);
       socket.join(roomId);
@@ -48,6 +53,21 @@ export class EventsGateway implements OnModuleInit {
         roomId,
         participants: this.rooms[roomId],
       });
+    }
+  }
+
+  private handleDisconnect(socket: Socket) {
+    // Find the room the user was in and remove them
+    const rooms = Object.keys(this.rooms);
+    for (const roomId of rooms) {
+      const index = this.rooms[roomId].indexOf(socket.id);
+      if (index !== -1) {
+        this.rooms[roomId].splice(index, 1); // Remove the user from the room
+        console.log(`User ${socket.id} removed from room ${roomId}`);
+        // Optionally, emit an event to notify other users in the room
+        this.server.to(roomId).emit('user-left', { peerId: socket.id, roomId });
+        break;
+      }
     }
   }
 }
