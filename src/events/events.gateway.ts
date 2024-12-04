@@ -48,6 +48,14 @@ export class EventsGateway implements OnModuleInit {
       );
       this.rooms[roomId].push(peerId);
       console.log('added peer to room', this.rooms);
+
+      // whenever anyone joins the room
+      socket.on('ready', () => {
+        // from the frontend once someone joins the room we will emit a ready event
+        // then from our server we will emit an event to all the clients conn that a new peer has added
+        socket.to(roomId).emit('user-joined', { peerId });
+      });
+
       socket.join(roomId);
       socket.emit('get-users', {
         roomId,
